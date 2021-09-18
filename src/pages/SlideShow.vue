@@ -2,16 +2,25 @@
   <!-- <h1>Slide Show</h1> -->
   <!-- <q-btn label="next" @click="getNextImage" /> -->
   <div id="main-box">
-    <q-btn label="prev" @click="getPrevImage" />
     <img id="main-image" :src="currentImageUrl" />
+  </div>
+  <div id="overlay">
+    <q-btn label="prev" @click="getPrevImage" />
     <q-btn label="next" @click="getNextImage" />
+    <q-list>
+      <q-item v-for="(imageName, index) in slideshowHistory" :key="imageName">
+        <q-icon v-if="currentIdx === index" name="chevron_right" />
+        {{ imageName }}
+      </q-item>
+
+    </q-list>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
 
-import { useGPhotos, MediaItem } from 'src/composables/useGPhotos';
+import { useGPhotos } from 'src/composables/useGPhotos';
 
 // interface AlbumListingResponse {
 //   nextPageToken?: string,
@@ -39,25 +48,25 @@ export default defineComponent({
     // const mediaItems = ref<MediaItem[]>([]);
     // const currentImage = ref<MediaItem>();
     const currentImageUrl = ref<string>('');
-    const slideShowHistory = ref<string[]>([]);
+    const slideshowHistory = ref<string[]>([]);
     const currentIdx = ref<number>(0);
     let timeoutId: number;
 
     function addImageToHistory (id: string) {
-      slideShowHistory.value.push(id);
+      slideshowHistory.value.push(id);
     }
 
     function resetImageTimer () {
       if (timeoutId) {
         clearTimeout(timeoutId);
-        timeoutId = window.setTimeout(getNextImage, millisPerImage);
       }
+      timeoutId = window.setTimeout(getNextImage, millisPerImage);
     }
 
     function getPrevImage () {
       resetImageTimer();
       currentIdx.value--;
-      fetchImageWithId(slideShowHistory.value[currentIdx.value]);
+      fetchImageWithId(slideshowHistory.value[currentIdx.value]);
     }
 
     function getNextImage () {
@@ -72,8 +81,8 @@ export default defineComponent({
       // }
 
       currentIdx.value++;
-      if (currentIdx.value < slideShowHistory.value.length) {
-        fetchImageWithId(slideShowHistory.value[currentIdx.value]);
+      if (currentIdx.value < slideshowHistory.value.length) {
+        fetchImageWithId(slideshowHistory.value[currentIdx.value]);
       } else {
         const pickedImage = fetchRandomImage();
         addImageToHistory(pickedImage.id);
@@ -110,7 +119,7 @@ export default defineComponent({
       await getAlbumItems();
       getNextImage();
     })();
-    return { currentImageUrl, getPrevImage, getNextImage, slideShowHistory };
+    return { currentImageUrl, currentIdx, getPrevImage, getNextImage, slideshowHistory };
   },
 });
 
@@ -129,6 +138,14 @@ export default defineComponent({
   // text-align: center;
   /* position:absolute; */
   z-index: -1;
+}
+#overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: hsla(0, 100%, 100%, 0.5);
 }
 
 </style>
