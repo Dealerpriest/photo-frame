@@ -7,6 +7,8 @@
   <div id="overlay">
     <q-btn label="prev" @click="getPrevImage" />
     <q-btn label="next" @click="getNextImage" />
+    <pre> currentIdx: {{currentIdx}} </pre>
+    <pre> slideshowHistory  length: {{ slideshowHistory.length }} </pre>
     <q-list>
       <q-item v-for="(imageName, index) in slideshowHistory" :key="imageName">
         <q-icon v-if="currentIdx === index" name="chevron_right" />
@@ -117,7 +119,9 @@ export default defineComponent({
 
     void (async () => {
       await getAlbumItems();
-      getNextImage();
+      const pickedImage = fetchRandomImage();
+      addImageToHistory(pickedImage.id);
+      resetImageTimer();
     })();
     return { currentImageUrl, currentIdx, getPrevImage, getNextImage, slideshowHistory };
   },
