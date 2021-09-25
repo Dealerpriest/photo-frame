@@ -9,6 +9,12 @@
     <q-btn label="next" @click="getNextImage" />
     <pre> currentIdx: {{currentIdx}} </pre>
     <pre> slideshowHistory  length: {{ slideshowHistory.length }} </pre>
+    <pre> totalWeight: {{totalWeight}} </pre>
+    <q-list>
+      <q-item v-for="[key, weightedItem] in weightedDictionary" :key="key">
+{{key}} -->{{weightedItem.timesPicked}}:{{weightedItem.weight}}
+      </q-item>
+    </q-list>
     <q-list>
       <q-item v-for="(imageName, index) in slideshowHistory" :key="imageName">
         <q-icon v-if="currentIdx === index" name="chevron_right" />
@@ -22,7 +28,8 @@
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
 
-import { useGPhotos } from 'src/composables/useGPhotos';
+import { useGPhotos, MediaItem } from 'src/composables/useGPhotos';
+import { useWeightedDictionary } from 'src/composables/useWeightedRandomness';
 
 // interface AlbumListingResponse {
 //   nextPageToken?: string,
@@ -47,6 +54,7 @@ export default defineComponent({
   setup () {
     const millisPerImage = 5000;
     const { mediaItems, getAlbumItems } = useGPhotos();
+    const { weightedDictionary, setCandidateSpace, getRandomItem, totalWeight } = useWeightedDictionary<MediaItem>();
     // const mediaItems = ref<MediaItem[]>([]);
     // const currentImage = ref<MediaItem>();
     const currentImageUrl = ref<string>('');
@@ -108,8 +116,9 @@ export default defineComponent({
     }
 
     function fetchRandomImage () {
-      const idx = Math.floor(Math.random() * mediaItems.value.length);
-      const image = mediaItems.value[idx];
+      // const idx = Math.floor(Math.random() * mediaItems.value.length);
+      // const image = mediaItems.value[idx];
+      const image = getRandomItem();
       const pickedBaseUrl = image.baseUrl;
       const width = document.documentElement.clientWidth;
       const height = document.documentElement.clientHeight;
@@ -119,11 +128,17 @@ export default defineComponent({
 
     void (async () => {
       await getAlbumItems();
+      const mediaItemsMap = new Map<string, MediaItem>();
+      mediaItems.value.forEach((mediaItem) => {
+        mediaItemsMap.set(mediaItem.id, mediaItem);
+      });
+      setCandidateSpace(mediaItemsMap);
+
       const pickedImage = fetchRandomImage();
       addImageToHistory(pickedImage.id);
       resetImageTimer();
     })();
-    return { currentImageUrl, currentIdx, getPrevImage, getNextImage, slideshowHistory };
+    return { currentImageUrl, currentIdx, getPrevImage, getNextImage, slideshowHistory, weightedDictionary, totalWeight };
   },
 });
 
