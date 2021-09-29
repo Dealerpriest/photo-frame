@@ -28,12 +28,40 @@ export function useWeightedDictionary<T> () {
     });
   }
 
+  function updateCandidateSpace (space: Map<string, T>) {
+    space.forEach((item, key) => {
+      const existingItem = dictionary.value.get(key);
+      if (existingItem) {
+        existingItem.item = item;
+      } else {
+        const newItem: CountedItem<T> = {
+          timesPicked: 0,
+          item: item,
+        };
+        dictionary.value.set(key, newItem);
+      }
+    });
+  }
+
   function addItem (key: string, item: T) {
+    if (dictionary.value.has(key)) {
+      console.error('that key is already present in candidate space');
+      return;
+    }
     const insertItem: CountedItem<T> = {
       timesPicked: 0,
       item: item,
     };
     dictionary.value.set(key, insertItem);
+  }
+
+  // Gets an item without affecting the weights or probabilities
+  function getItem (key: string) {
+    const existingItem = dictionary.value.get(key);
+    if (!existingItem) {
+      throw Error('no such item in candidate space');
+    }
+    return existingItem.item;
   }
 
   function pickItem (key: string): T {
@@ -113,5 +141,5 @@ export function useWeightedDictionary<T> () {
     //   randNum -= item.value.
     // }
   }
-  return { weightedDictionary, getRandomItem, addItem, setCandidateSpace, totalWeight };
+  return { weightedDictionary, getRandomItem, getItem, addItem, setCandidateSpace, updateCandidateSpace, totalWeight };
 }

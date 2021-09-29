@@ -53,8 +53,8 @@ import { useWeightedDictionary } from 'src/composables/useWeightedRandomness';
 export default defineComponent({
   setup () {
     const millisPerImage = 5000;
-    const { mediaItems, getAlbumItems } = useGPhotos();
-    const { weightedDictionary, setCandidateSpace, getRandomItem, totalWeight } = useWeightedDictionary<MediaItem>();
+    const { getAlbumItems } = useGPhotos();
+    const { weightedDictionary, setCandidateSpace, updateCandidateSpace, getRandomItem, getItem, totalWeight } = useWeightedDictionary<MediaItem>();
     // const mediaItems = ref<MediaItem[]>([]);
     // const currentImage = ref<MediaItem>();
     const currentImageUrl = ref<string>('');
@@ -81,9 +81,10 @@ export default defineComponent({
 
     function getNextImage () {
       console.log('getting next image');
-      if (!mediaItems.value.length) {
-        return;
-      }
+      // TODO: replace this check with
+      // if (!mediaItems.value.length) {
+      //   return;
+      // }
 
       resetImageTimer();
       // if (timeoutId) {
@@ -102,7 +103,8 @@ export default defineComponent({
     }
 
     function fetchImageWithId (id:string) {
-      const image = mediaItems.value.find((item) => item.id === id);
+      const image = getItem(id);
+      // const image = mediaItems.value.find((item) => item.id === id);
       if (!image) {
         console.error('no image with that id found');
         return;
@@ -126,14 +128,22 @@ export default defineComponent({
       return image;
     }
 
-    void (async () => {
-      await getAlbumItems();
-      const mediaItemsMap = new Map<string, MediaItem>();
-      mediaItems.value.forEach((mediaItem) => {
-        mediaItemsMap.set(mediaItem.id, mediaItem);
-      });
-      setCandidateSpace(mediaItemsMap);
+    async function refetchMediaItems () {
+      console.log('refetching mediaItems');
+      const fetchedMediaItems = await getAlbumItems();
+      if (fetchedMediaItems) {
+        const mediaItemsMap = new Map<string, MediaItem>();
+        fetchedMediaItems.forEach((mediaItem) => {
+          mediaItemsMap.set(mediaItem.id, mediaItem);
+        });
+        updateCandidateSpace(mediaItemsMap);
+      }
+    }
 
+    void (async () => {
+      await refetchMediaItems();
+
+      setInterval(() => void refetchMediaItems(), 30000);
       const pickedImage = fetchRandomImage();
       addImageToHistory(pickedImage.id);
       resetImageTimer();

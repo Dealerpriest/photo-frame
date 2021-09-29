@@ -47,7 +47,7 @@ const tokenExpiresAt = ref<Date>();
 
 const albums = ref<AlbumListingResponse['albums']>([]);
 const activeAlbum = ref<Album>();
-const mediaItems = ref<MediaItem[]>([]);
+// const mediaItems = ref<MediaItem[]>([]);
 
 // let returnRoute: RouteLocationNormalizedLoaded;
 
@@ -174,17 +174,38 @@ async function fetchNewAccessToken (refreshToken: string) {
 }
 
 async function listAlbums () {
-  // const accessToken = localStorage.getItem('accessToken');
-  if (accessToken.value) {
-    let response: AxiosResponse<AlbumListingResponse> = await axios.get('https://photoslibrary.googleapis.com/v1/albums', { headers: { Authorization: `Bearer ${accessToken.value}` } });
-    console.log(response);
-    if (response.data.nextPageToken) {
-      const nextPageToken = response.data.nextPageToken;
-      console.log('nextPageToken :>> ', nextPageToken);
-      response = await axios.get('https://photoslibrary.googleapis.com/v1/albums', { params: { pageToken: nextPageToken }, headers: { Authorization: `Bearer ${accessToken.value}` } });
-      console.log(response);
-      albums.value = response.data.albums;
+  const getNextPage = async (pageToken: string) => {
+    if (accessToken.value) {
+      // const response: AxiosResponse<AlbumListingResponse> = await axios.get('https://photoslibrary.googleapis.com/v1/albums', { headers: { Authorization: `Bearer ${accessToken.value}` } });
+      const response: AxiosResponse<AlbumListingResponse> = await axios.get('https://photoslibrary.googleapis.com/v1/albums', { params: { pageToken: pageToken }, headers: { Authorization: `Bearer ${accessToken.value}` } });
+      console.log('retrieved:', response.data);
+      return response.data;
     }
+
+    return Promise.reject('failed to fetch new album page');
+  };
+  if (accessToken.value) {
+    let { data }: AxiosResponse<AlbumListingResponse> = await axios.get('https://photoslibrary.googleapis.com/v1/albums', { headers: { Authorization: `Bearer ${accessToken.value}` } });
+    console.log('retrieved:', data);
+    if (data.albums) {
+      albums.value = data.albums;
+    }
+    while (data.nextPageToken) {
+      const nextPageToken = data.nextPageToken;
+      data = await getNextPage(nextPageToken);
+      albums.value?.push(data);
+    }
+
+    // if (response.data.nextPageToken) {
+    //   const nextPageToken = response.data.nextPageToken;
+    //   console.log('nextPageToken :>> ', nextPageToken);
+    //   response = await axios.get('https://photoslibrary.googleapis.com/v1/albums', { params: { pageToken: nextPageToken }, headers: { Authorization: `Bearer ${accessToken.value}` } });
+    //   console.log(response);
+    //   albums.value = response.data.albums;
+    //   return albums.value;
+    // }
+  } else {
+    console.error('no access token present. cant call API');
   }
 }
 
@@ -211,13 +232,15 @@ async function getAlbumItems () {
   let response: AxiosResponse<MediaItemsResponse> = await axios.post('https://photoslibrary.googleapis.com/v1/mediaItems:search', { albumId: album.id, pageSize: '100' }, { headers: { Authorization: `Bearer ${accessToken.value}` } });
   console.log('response.data:>> ', response.data);
   // retrievedItemsCount += response.data.mediaItems.length;
-  mediaItems.value = [...response.data.mediaItems];
+  // mediaItems.value = [...response.data.mediaItems];
+  const mediaItems = [...response.data.mediaItems];
   while (response.data.nextPageToken) {
     response = await axios.post('https://photoslibrary.googleapis.com/v1/mediaItems:search', { albumId: album.id, pageSize: '100', pageToken: response.data.nextPageToken }, { headers: { Authorization: `Bearer ${accessToken.value}` } });
     // retrievedItemsCount += response.data.mediaItems.length;
     console.log(' response.data :>> ', response.data);
-    mediaItems.value.push(...response.data.mediaItems);
+    mediaItems.push(...response.data.mediaItems);
   }
+  return mediaItems;
   // console.log('nr of retrieved items: ', retrievedItemsCount);
 }
 
@@ -243,6 +266,6 @@ export function useGPhotos () {
     setActiveAlbum,
     albums,
     getAlbumItems,
-    mediaItems,
+    // mediaItems,
   };
 }
