@@ -12,6 +12,9 @@ interface WeightedItem<T> {
   item: T,
 }
 
+// TODO: Possibly separate pickinghistory with candidate space.
+// That way, the history of items no longer in the candidate space would be preserved.
+
 export function useWeightedDictionary<T> () {
   const dictionary = ref<Map<string, CountedItem<T>>>(new Map<string, CountedItem<T>>());
   const totalNrOfPicks = ref<number>(0);

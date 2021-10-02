@@ -18,8 +18,8 @@ interface TokenData {
   // accessExpiresAt: Date,
 }
 
-interface Album {
-  title: string, id: string, productUrl: string, mediaItemsCount: string
+export interface Album {
+  title: string, id: string, productUrl: string, mediaItemsCount: number
 }
 
 interface AlbumListingResponse {
@@ -45,8 +45,8 @@ const accessToken = ref<string>();
 const tokenExpiresAt = ref<Date>();
 // const refreshToken = ref<string>('');
 
-const albums = ref<AlbumListingResponse['albums']>([]);
-const activeAlbum = ref<Album>();
+const albums = ref<Album[]>([]);
+const activeAlbums = ref<Album[]>();
 // const mediaItems = ref<MediaItem[]>([]);
 
 // let returnRoute: RouteLocationNormalizedLoaded;
@@ -56,9 +56,9 @@ const creds = credentials.web;
 
 export async function initialize (returnPath?: string) {
   console.log('initialize called');
-  const dataString = localStorage.getItem('activeAlbum');
+  const dataString = localStorage.getItem('activeAlbums');
   if (dataString) {
-    activeAlbum.value = JSON.parse(dataString) as Album;
+    activeAlbums.value = JSON.parse(dataString) as Album[];
   }
   if (!accessToken.value ||
       // !refreshToken.value ||
@@ -121,7 +121,7 @@ function serverAuth (returnPath : string) {
 
 function saveTokenData (tokenResponse: TokenResponse) {
   if (!tokenResponse.refresh_token) {
-    throw Error('no rereshtoken in provided tokenResponse');
+    throw Error('no refreshtoken in provided tokenResponse');
   }
   // tokenData.timeStamp = new Date();
   // const expiresAt = new Date();
@@ -193,24 +193,18 @@ async function listAlbums () {
     while (data.nextPageToken) {
       const nextPageToken = data.nextPageToken;
       data = await getNextPage(nextPageToken);
-      albums.value?.push(data);
+      if (data.albums) {
+        albums.value = albums.value?.concat(data.albums);
+      }
     }
-
-    // if (response.data.nextPageToken) {
-    //   const nextPageToken = response.data.nextPageToken;
-    //   console.log('nextPageToken :>> ', nextPageToken);
-    //   response = await axios.get('https://photoslibrary.googleapis.com/v1/albums', { params: { pageToken: nextPageToken }, headers: { Authorization: `Bearer ${accessToken.value}` } });
-    //   console.log(response);
-    //   albums.value = response.data.albums;
-    //   return albums.value;
-    // }
   } else {
     console.error('no access token present. cant call API');
   }
 }
 
-function setActiveAlbum (album: Album) {
-  localStorage.setItem('activeAlbum', JSON.stringify(album));
+function setActiveAlbums (albums: Album[]) {
+  console.log('setting active albums to: ', albums);
+  localStorage.setItem('activeAlbums', JSON.stringify(albums));
 }
 
 async function getAlbumItems () {
@@ -221,27 +215,41 @@ async function getAlbumItems () {
   }
 
   // const album: Album = JSON.parse(localStorage.getItem('chosenAlbum') as string) as Album;
-  if (!activeAlbum.value) {
-    console.error('no album selected');
+  if (!activeAlbums.value) {
+    console.error('no albums selected');
     return;
   }
-  console.log('expected nr of retrieved items:', activeAlbum.value.mediaItemsCount);
-  const album = activeAlbum.value;
-  // const formData = '';
-  // const retrievedItemsCount = 0;
-  let response: AxiosResponse<MediaItemsResponse> = await axios.post('https://photoslibrary.googleapis.com/v1/mediaItems:search', { albumId: album.id, pageSize: '100' }, { headers: { Authorization: `Bearer ${accessToken.value}` } });
-  console.log('response.data:>> ', response.data);
-  // retrievedItemsCount += response.data.mediaItems.length;
-  // mediaItems.value = [...response.data.mediaItems];
-  const mediaItems = [...response.data.mediaItems];
-  while (response.data.nextPageToken) {
-    response = await axios.post('https://photoslibrary.googleapis.com/v1/mediaItems:search', { albumId: album.id, pageSize: '100', pageToken: response.data.nextPageToken }, { headers: { Authorization: `Bearer ${accessToken.value}` } });
-    // retrievedItemsCount += response.data.mediaItems.length;
-    console.log(' response.data :>> ', response.data);
-    mediaItems.push(...response.data.mediaItems);
+  let totatlNrOfItems = 0;
+  for (const album of activeAlbums.value) {
+    totatlNrOfItems += album.mediaItemsCount;
+  }
+  console.log('expected nr of retrieved items:', totatlNrOfItems);
+  const selectedAlbums = activeAlbums.value;
+
+  const getNextPage = async (albumId: string, pageToken?: string) => {
+    if (!accessToken.value) {
+      // console.error('no accesstoken for fetching');
+      return Promise.reject('No accesstoken available');
+    }
+    const params = {
+      albumId: albumId,
+      pageSize: '100',
+      ...(pageToken && { pageToken: pageToken }),
+    };
+    const response: AxiosResponse<MediaItemsResponse> = await axios.post('https://photoslibrary.googleapis.com/v1/mediaItems:search', params, { headers: { Authorization: `Bearer ${accessToken.value}` } });
+    console.log('getNextPage gave: ', response.data);
+    return response.data;
+  };
+  const mediaItems: MediaItem[] = [];
+  for (const album of selectedAlbums) {
+    let retrievedData = await getNextPage(album.id);
+    mediaItems.push(...retrievedData.mediaItems);
+    while (retrievedData.nextPageToken) {
+      retrievedData = await getNextPage(album.id, retrievedData.nextPageToken);
+      mediaItems.push(...retrievedData.mediaItems);
+    }
   }
   return mediaItems;
-  // console.log('nr of retrieved items: ', retrievedItemsCount);
 }
 
 export function useGPhotos () {
@@ -263,7 +271,7 @@ export function useGPhotos () {
     goToReturnRoute,
     fetchTokens,
     listAlbums,
-    setActiveAlbum,
+    setActiveAlbums,
     albums,
     getAlbumItems,
     // mediaItems,

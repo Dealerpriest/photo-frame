@@ -3,16 +3,18 @@
   <!-- <p>{{albumName}}</p> -->
   <q-list>
     <q-item v-for="album in albums" :key="album.id">
-      <q-btn :label="album.title" @click="setActiveAlbum(album)" />
+      <q-toggle :label="album.title" v-model="toggleStates" :val="album" />
+      <!-- <q-btn :label="album.title" @click="addAlbum" /> -->
     </q-item>
   </q-list>
+  <pre>{{ toggleStates }} </pre>
   <pre>{{albums}}</pre>
 </template>
 
 <script lang="ts">
 // import axios, { AxiosResponse } from 'axios';
-import { defineComponent } from 'vue';
-import { useGPhotos } from 'src/composables/useGPhotos';
+import { defineComponent, ref, watch } from 'vue';
+import { useGPhotos, Album } from 'src/composables/useGPhotos';
 
 // interface Album {
 //   title: string, id: string, productUrl: string, mediaItemsCount: string
@@ -26,8 +28,16 @@ import { useGPhotos } from 'src/composables/useGPhotos';
 export default defineComponent({
   name: 'ChooseAlbum',
   setup () {
-    const { listAlbums, setActiveAlbum, albums } = useGPhotos();
+    const { listAlbums, setActiveAlbums, albums } = useGPhotos();
     void listAlbums();
+
+    const toggleStates = ref<Album[]>([]);
+
+    watch(toggleStates, (states) => {
+      setActiveAlbums(states);
+      console.log('toggled with new value: ', states);
+    });
+
     // const album = ref<Record<string, unknown>>(null);
     //   const albums = ref<AlbumListingResponse['albums']>([]);
     //   // const albumName = ref<string>('');
@@ -52,7 +62,7 @@ export default defineComponent({
 
     //   void listAlbums();
     console.log(`albums ${JSON.stringify(albums)}`);
-    return { albums, setActiveAlbum };
+    return { albums, toggleStates };
   },
 });
 </script>

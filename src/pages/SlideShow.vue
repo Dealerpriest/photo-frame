@@ -54,7 +54,7 @@ export default defineComponent({
   setup () {
     const millisPerImage = 5000;
     const { getAlbumItems } = useGPhotos();
-    const { weightedDictionary, setCandidateSpace, updateCandidateSpace, getRandomItem, getItem, totalWeight } = useWeightedDictionary<MediaItem>();
+    const { weightedDictionary, updateCandidateSpace, getRandomItem, getItem, totalWeight } = useWeightedDictionary<MediaItem>();
     // const mediaItems = ref<MediaItem[]>([]);
     // const currentImage = ref<MediaItem>();
     const currentImageUrl = ref<string>('');
