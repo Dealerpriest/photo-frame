@@ -1,19 +1,20 @@
 <template>
   <h2>Choose Album</h2>
   <!-- <p>{{albumName}}</p> -->
-  <q-list>
-    <q-item v-for="album in albums" :key="album.id">
-      <q-toggle :label="album.title" v-model="toggleStates" :val="album" />
+  <!-- <q-list> -->
+    <!-- <q-item v-for="album in albums" :key="album.id"> -->
+      <!-- <q-checkbox :label="album.title" v-model="toggleStates" :val="album.id" /> -->
+      <q-option-group :options="albumOptions" v-model="pickedAlbums" type="checkbox" />
       <!-- <q-btn :label="album.title" @click="addAlbum" /> -->
-    </q-item>
-  </q-list>
-  <pre>{{ toggleStates }} </pre>
+    <!-- </q-item> -->
+  <!-- </q-list> -->
+  <pre>{{ albumOptions }} </pre>
   <pre>{{albums}}</pre>
 </template>
 
 <script lang="ts">
 // import axios, { AxiosResponse } from 'axios';
-import { defineComponent, ref, watch } from 'vue';
+import { defineComponent, ref, watch, computed } from 'vue';
 import { useGPhotos, Album } from 'src/composables/useGPhotos';
 
 // interface Album {
@@ -28,12 +29,47 @@ import { useGPhotos, Album } from 'src/composables/useGPhotos';
 export default defineComponent({
   name: 'ChooseAlbum',
   setup () {
-    const { listAlbums, setActiveAlbums, albums } = useGPhotos();
-    void listAlbums();
+    const { fetchAllAlbums, setActiveAlbums, albums, activeAlbums } = useGPhotos();
 
-    const toggleStates = ref<Album[]>([]);
+    // const toggleStates = ref<Album[]>([]);
 
-    watch(toggleStates, (states) => {
+    // if (activeAlbums.value) {
+    //   toggleStates.value = activeAlbums.value;
+    // }
+
+    interface albumOption {
+      label: string,
+      value: Album,
+    }
+
+    const albumOptions = ref<albumOption[]>([]);
+    const pickedAlbums = ref<Album[]>([]);
+    void fetchAllAlbums().then(() => {
+      for (const oneAlbum of albums.value) {
+        const option = {
+          label: oneAlbum.title,
+          value: oneAlbum,
+        };
+        albumOptions.value.push(option);
+      // console.log('one options', oneAlbum);
+      }
+      console.log('albumOptions', albumOptions.value);
+      if (activeAlbums.value?.length) {
+        console.log('activeAlbums :>> ', activeAlbums.value);
+        for (const album of activeAlbums.value) {
+        // const modelObj = {
+        //   label: album.title,
+        //   value: album,
+        // };
+          const foundOption = albumOptions.value.find((option) => option.value.id === album.id);
+          if (foundOption?.value) {
+            pickedAlbums.value.push(foundOption.value);
+          }
+        }
+      }
+    });
+
+    watch(pickedAlbums, (states) => {
       setActiveAlbums(states);
       console.log('toggled with new value: ', states);
     });
@@ -62,7 +98,7 @@ export default defineComponent({
 
     //   void listAlbums();
     console.log(`albums ${JSON.stringify(albums)}`);
-    return { albums, toggleStates };
+    return { albums, albumOptions, pickedAlbums };
   },
 });
 </script>

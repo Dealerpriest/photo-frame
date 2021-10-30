@@ -173,7 +173,7 @@ async function fetchNewAccessToken (refreshToken: string) {
   scheduleTokenRefreshIn(tokenData.expires_in);
 }
 
-async function listAlbums () {
+async function fetchAllAlbums () {
   const getNextPage = async (pageToken: string) => {
     if (accessToken.value) {
       // const response: AxiosResponse<AlbumListingResponse> = await axios.get('https://photoslibrary.googleapis.com/v1/albums', { headers: { Authorization: `Bearer ${accessToken.value}` } });
@@ -270,10 +270,11 @@ export function useGPhotos () {
     serverAuth,
     goToReturnRoute,
     fetchTokens,
-    listAlbums,
+    fetchAllAlbums,
     setActiveAlbums,
-    albums,
     getAlbumItems,
+    albums,
+    activeAlbums,
     // mediaItems,
   };
 }
