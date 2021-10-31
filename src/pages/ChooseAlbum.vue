@@ -8,8 +8,8 @@
       <!-- <q-btn :label="album.title" @click="addAlbum" /> -->
     <!-- </q-item> -->
   <!-- </q-list> -->
-  <pre>{{ albumOptions }} </pre>
-  <pre>{{albums}}</pre>
+  <!-- <pre>{{ albumOptions }} </pre>
+  <pre>{{albums}}</pre> -->
 </template>
 
 <script lang="ts">
@@ -37,31 +37,31 @@ export default defineComponent({
     //   toggleStates.value = activeAlbums.value;
     // }
 
-    interface albumOption {
-      label: string,
-      value: Album,
-    }
+    // interface albumOption {
+    //   label: string,
+    //   value: Album,
+    // }
 
-    const albumOptions = ref<albumOption[]>([]);
+    // const albumOptions = ref<albumOption[]>([]);
     const pickedAlbums = ref<Album[]>([]);
-    void fetchAllAlbums().then(() => {
-      for (const oneAlbum of albums.value) {
-        const option = {
-          label: oneAlbum.title,
-          value: oneAlbum,
-        };
-        albumOptions.value.push(option);
-      // console.log('one options', oneAlbum);
-      }
-      console.log('albumOptions', albumOptions.value);
+    void fetchAllAlbums();
+    const albumOptions = computed(() => albums.value.map(album => ({ label: album.title, value: album })));
+    watch(albumOptions, (options) => {
+      // albumOptions.value = [];
+      // for (const oneAlbum of albums) {
+      //   const option = {
+      //     label: oneAlbum.title,
+      //     value: oneAlbum,
+      //   };
+      //   albumOptions.value.push(option);
+      // // console.log('one options', oneAlbum);
+      // }
+      // console.log('albumOptions', albumOptions.value);
       if (activeAlbums.value?.length) {
         console.log('activeAlbums :>> ', activeAlbums.value);
+        pickedAlbums.value = [];
         for (const album of activeAlbums.value) {
-        // const modelObj = {
-        //   label: album.title,
-        //   value: album,
-        // };
-          const foundOption = albumOptions.value.find((option) => option.value.id === album.id);
+          const foundOption = options.find((option) => option.value.id === album.id);
           if (foundOption?.value) {
             pickedAlbums.value.push(foundOption.value);
           }
