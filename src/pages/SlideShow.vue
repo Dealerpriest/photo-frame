@@ -1,28 +1,26 @@
 <template>
   <!-- <h1>Slide Show</h1> -->
   <!-- <q-btn label="next" @click="getNextImage" /> -->
-  <div id="main-box">
+  <div id="main-box" @click="screenTouched">
     <img id="main-image" :src="currentImageUrl" />
   </div>
-  <div id="overlay">
-    <q-btn label="prev" @click="getPrevImage" />
-    <q-btn label="next" @click="getNextImage" />
-    <pre> currentIdx: {{currentIdx}} </pre>
-    <pre> slideshowHistory  length: {{ slideshowHistory.length }} </pre>
-    <pre> totalWeight: {{totalWeight}} </pre>
-    <q-list>
-      <q-item v-for="[key, weightedItem] in weightedDictionary" :key="key">
-{{key}} -->{{weightedItem.timesPicked}}:{{weightedItem.weight}}
-      </q-item>
-    </q-list>
-    <q-list>
-      <q-item v-for="(imageName, index) in slideshowHistory" :key="imageName">
-        <q-icon v-if="currentIdx === index" name="chevron_right" />
-        {{ imageName }}
-      </q-item>
+  <transition name="fade">
+    <div v-if="showOverlay" id="overlay">
+      <q-btn round icon="exit" @click="screenTouched" />
+      <q-btn label="prev" @click="getPrevImage" />
+      <q-btn label="next" @click="getNextImage" />
+      <pre> currentIdx: {{currentIdx}} </pre>
+      <pre> slideshowHistory  length: {{ slideshowHistory.length }} </pre>
+      <pre> totalWeight: {{totalWeight}} </pre>
+      <q-list>
+        <q-item v-for="(imageName, index) in slideshowHistory" :key="imageName">
+          <q-icon v-if="currentIdx === index" name="chevron_right" />
+          {{ imageName }}
+        </q-item>
 
-    </q-list>
-  </div>
+      </q-list>
+    </div>
+  </transition>
 </template>
 
 <script lang="ts">
@@ -51,6 +49,17 @@ import { useWeightedDictionary } from 'src/composables/useWeightedRandomness';
 
 // import axios, { AxiosResponse } from 'axios';
 export default defineComponent({
+  data () {
+    return {
+      showOverlay: false,
+    };
+  },
+  methods: {
+    screenTouched () {
+      console.log('Overlay touched');
+      this.showOverlay = !this.showOverlay;
+    },
+  },
   setup () {
     const millisPerImage = 5000;
     const { getAlbumItems } = useGPhotos();
@@ -58,6 +67,7 @@ export default defineComponent({
     // const mediaItems = ref<MediaItem[]>([]);
     // const currentImage = ref<MediaItem>();
     const currentImageUrl = ref<string>('');
+    const currentImage = ref<MediaItem>();
     const slideshowHistory = ref<string[]>([]);
     const currentIdx = ref<number>(0);
     let timeoutId: number;
@@ -76,7 +86,7 @@ export default defineComponent({
     function getPrevImage () {
       resetImageTimer();
       currentIdx.value--;
-      fetchImageWithId(slideshowHistory.value[currentIdx.value]);
+      currentImage.value = fetchImageWithId(slideshowHistory.value[currentIdx.value]);
     }
 
     function getNextImage () {
@@ -93,9 +103,10 @@ export default defineComponent({
 
       currentIdx.value++;
       if (currentIdx.value < slideshowHistory.value.length) {
-        fetchImageWithId(slideshowHistory.value[currentIdx.value]);
+        currentImage.value = fetchImageWithId(slideshowHistory.value[currentIdx.value]);
       } else {
         const pickedImage = fetchRandomImage();
+        currentImage.value = pickedImage;
         addImageToHistory(pickedImage.id);
       }
 
@@ -175,6 +186,16 @@ export default defineComponent({
   bottom: 0;
   left: 0;
   background-color: hsla(0, 100%, 100%, 0.5);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 </style>
