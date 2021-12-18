@@ -2,12 +2,19 @@
   <!-- <h1>Slide Show</h1> -->
   <!-- <q-btn label="next" @click="getNextImage" /> -->
   <div id="main-box" @click="screenTouched">
-    <img id="main-image" :src="currentImageUrl" />
+    <template v-if="currentMediaItem">
+      <!-- <img v-if="'photo' in currentMediaItem?.mediaMetaData" id="main-image" :src="currentImageUrl" />
+      <video v-else id="main-video" :src="currentVideoUrl" /> -->
+      <img id="main-image" :src="currentImageUrl" />
+    </template>
+  </div>
+  <div id="debug-box">
+    <pre>{{ currentMediaItem }}</pre>
   </div>
   <transition name="fade">
     <div v-if="showOverlay" id="overlay">
       <!-- <q-btn round icon="exit" @click="screenTouched" /> -->
-      <h3 class="footer">{{ currentImage?.description? currentImage?.description: '' }} </h3>
+      <h3 class="footer">{{ currentMediaItem?.description? currentMediaItem?.description: '' }} </h3>
       <q-btn class="q-ma-md left" flat icon="keyboard_arrow_left" size="xl" round  @click="getPrevImage" />
       <q-btn class="q-ma-md right" flat icon="keyboard_arrow_right" size="xl" round @click="getNextImage" />
       <!-- <pre class="vignette-shadow"> currentIdx: {{currentIdx}} </pre>
@@ -30,25 +37,6 @@ import { defineComponent, ref } from 'vue';
 import { useGPhotos, MediaItem } from 'src/composables/useGPhotos';
 import { useWeightedDictionary } from 'src/composables/useWeightedRandomness';
 
-// interface AlbumListingResponse {
-//   nextPageToken?: string,
-//   albums?: Album[]
-// }
-// interface MediaItem {
-//   id: string,
-//   productUrl: string,
-//   baseUrl: string,
-//   mimeType: string,
-//   mediaMetaData: Record<string, unknown>,
-//   filename: string,
-// }
-
-// interface MediaItemResponse {
-//   mediaItems: MediaItem[],
-//   nextPageToken: string,
-// }
-
-// import axios, { AxiosResponse } from 'axios';
 export default defineComponent({
   data () {
     return {
@@ -65,10 +53,9 @@ export default defineComponent({
     const millisPerImage = 5000;
     const { getAlbumItems } = useGPhotos();
     const { weightedDictionary, updateCandidateSpace, getRandomItem, getItem, totalWeight } = useWeightedDictionary<MediaItem>();
-    // const mediaItems = ref<MediaItem[]>([]);
-    // const currentImage = ref<MediaItem>();
     const currentImageUrl = ref<string>('');
-    const currentImage = ref<MediaItem>();
+    const currentVideoUrl = ref<string>('');
+    const currentMediaItem = ref<MediaItem>();
     const slideshowHistory = ref<string[]>([]);
     const currentIdx = ref<number>(0);
     let timeoutId: number;
@@ -78,66 +65,81 @@ export default defineComponent({
     }
 
     function resetImageTimer () {
+      console.log('resetting image timer');
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
       timeoutId = window.setTimeout(getNextImage, millisPerImage);
     }
 
-    function getPrevImage () {
+    function assignPickedMediaItem (mediaItem: MediaItem) {
+      if (!mediaItem) {
+        console.error('something is wrong!, mediaItem is', mediaItem);
+        return;
+      }
+      currentMediaItem.value = mediaItem;
+      console.log('new mediaItem picked');
       resetImageTimer();
+      // if ('video' in currentMediaItem.value.mediaMetaData) {
+      //   console.log('this was a video mediaItem');
+      // }
+      const pickedBaseUrl = mediaItem.baseUrl;
+      const width = document.documentElement.clientWidth;
+      const height = document.documentElement.clientHeight;
+      currentImageUrl.value = `${pickedBaseUrl}=w${width}-h${height}`;
+    }
+
+    function getPrevImage () {
+      if (currentIdx.value <= 0) {
+        console.log('already at first image');
+        return;
+      }
+      // resetImageTimer();
       currentIdx.value--;
-      currentImage.value = fetchImageWithId(slideshowHistory.value[currentIdx.value]);
+      try {
+        const pickedItem = fetchImageWithId(slideshowHistory.value[currentIdx.value]);
+        assignPickedMediaItem(pickedItem);
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     function getNextImage () {
       console.log('getting next image');
-      // TODO: replace this check with
-      // if (!mediaItems.value.length) {
-      //   return;
-      // }
-
-      resetImageTimer();
-      // if (timeoutId) {
-      //   clearTimeout(timeoutId);
-      // }
 
       currentIdx.value++;
       if (currentIdx.value < slideshowHistory.value.length) {
-        currentImage.value = fetchImageWithId(slideshowHistory.value[currentIdx.value]);
+        const pickedItem = fetchImageWithId(slideshowHistory.value[currentIdx.value]);
+        assignPickedMediaItem(pickedItem);
       } else {
-        const pickedImage = fetchRandomImage();
-        currentImage.value = pickedImage;
-        addImageToHistory(pickedImage.id);
+        const pickedItem = fetchRandomImage();
+        assignPickedMediaItem(pickedItem);
+        // currentMediaItem.value = pickedImage;
+        addImageToHistory(pickedItem.id);
       }
-
-      // timeoutId = window.setTimeout(getNextImage, millisPerImage);
     }
 
     function fetchImageWithId (id:string) {
-      const image = getItem(id);
-      // const image = mediaItems.value.find((item) => item.id === id);
-      if (!image) {
+      const mediaItem = getItem(id);
+      if (!mediaItem) {
         console.error('no image with that id found');
-        return;
+        // return;
+        throw new Error('no image with that id found');
       }
-      // currentImage.value = image;
-      const baseUrl = image.baseUrl;
-      const width = document.documentElement.clientWidth;
-      const height = document.documentElement.clientHeight;
-      currentImageUrl.value = `${baseUrl}=w${width}-h${height}`;
-      return image;
+      // const baseUrl = image.baseUrl;
+      // const width = document.documentElement.clientWidth;
+      // const height = document.documentElement.clientHeight;
+      // currentImageUrl.value = `${baseUrl}=w${width}-h${height}`;
+      return mediaItem;
     }
 
     function fetchRandomImage () {
-      // const idx = Math.floor(Math.random() * mediaItems.value.length);
-      // const image = mediaItems.value[idx];
-      const image = getRandomItem();
-      const pickedBaseUrl = image.baseUrl;
-      const width = document.documentElement.clientWidth;
-      const height = document.documentElement.clientHeight;
-      currentImageUrl.value = `${pickedBaseUrl}=w${width}-h${height}`;
-      return image;
+      const mediaItem = getRandomItem();
+      // const pickedBaseUrl = image.baseUrl;
+      // const width = document.documentElement.clientWidth;
+      // const height = document.documentElement.clientHeight;
+      // currentImageUrl.value = `${pickedBaseUrl}=w${width}-h${height}`;
+      return mediaItem;
     }
 
     async function refetchMediaItems () {
@@ -152,28 +154,40 @@ export default defineComponent({
       }
     }
 
+    // Initialize
     void (async () => {
       await refetchMediaItems();
 
       setInterval(() => void refetchMediaItems(), 30000);
-      const pickedImage = fetchRandomImage();
-      addImageToHistory(pickedImage.id);
-      resetImageTimer();
+      const pickedItem = fetchRandomImage();
+      addImageToHistory(pickedItem.id);
+      assignPickedMediaItem(pickedItem);
+      // resetImageTimer();
     })();
-    // currentImage.value?.mediaMetaData
-    return { currentImageUrl, currentImage, currentIdx, getPrevImage, getNextImage, slideshowHistory, weightedDictionary, totalWeight };
+
+    return { currentImageUrl, currentVideoUrl, currentMediaItem, currentIdx, getPrevImage, getNextImage, slideshowHistory, weightedDictionary, totalWeight };
   },
 });
 
 </script>
 
 <style lang="scss">
+#debug-box {
+  z-index: 2500;
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  background-color: rgba($color: #505050, $alpha: 0.7);
+  color: white;
+}
+
 #main-box {
   width: 100%;
   height: 100%;
   background: $dark;
   margin: 0;
 }
+
 #main-image {
   display: block;
   margin: auto ;
@@ -181,6 +195,7 @@ export default defineComponent({
   /* position:absolute; */
   z-index: -1;
 }
+
 #overlay {
   position: absolute;
   top: 0;

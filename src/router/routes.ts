@@ -1,6 +1,5 @@
 import { RouteRecordRaw } from 'vue-router';
 import { initialize } from 'src/composables/useGPhotos';
-// const { initialize } = useGPhotos();
 
 const routes: RouteRecordRaw[] = [
   {

@@ -32,7 +32,25 @@ export interface MediaItem {
   productUrl: string,
   baseUrl: string,
   mimeType: string,
-  mediaMetaData: Record<string, unknown>,
+  mediaMetaData: {
+    width: string;
+    height: string;
+    creationTime: string;
+    photo?: {
+      cameraMake: string;
+      cameraModel: string;
+      focalLength: string;
+      apertureFNumber: string;
+      isoEquivalent: string;
+      exposureTime: string;
+    },
+    video?: {
+      cameraMake: string,
+      cameraModel: string,
+      fps: string,
+      status: string
+    },
+  },
   filename: string,
   description: string
 }
