@@ -34,6 +34,7 @@ export interface MediaItem {
   mimeType: string,
   mediaMetaData: Record<string, unknown>,
   filename: string,
+  description: string
 }
 
 interface MediaItemsResponse {
@@ -42,7 +43,7 @@ interface MediaItemsResponse {
 }
 
 const accessToken = ref<string>();
-const tokenExpiresAt = ref<Date>();
+const tokenWillRefreshAt = ref<Date>();
 // const refreshToken = ref<string>('');
 
 const albums = ref<Album[]>([]);
@@ -61,8 +62,7 @@ export async function initialize (returnPath?: string) {
     activeAlbums.value = JSON.parse(dataString) as Album[];
   }
   if (!accessToken.value ||
-      // !refreshToken.value ||
-      !tokenExpiresAt.value) {
+      !tokenWillRefreshAt.value) {
     console.log('tokenData not set. Will init from localstorage');
     try {
       const refreshToken = loadTokenData();
@@ -76,46 +76,33 @@ export async function initialize (returnPath?: string) {
         serverAuth('/');
       }
     }
-    // scheduleTokenRefresh();
   }
 }
-// initialize();
 
 function scheduleTokenRefreshIn (secondsUntil: number) {
-  console.log(`scheduling Token refresh in ${secondsUntil - 10} seconds`);
+  console.log(`scheduling Token refresh in ${secondsUntil} seconds`);
   if (timeOut) {
     clearTimeout(timeOut);
   }
-  const expiresAt = new Date();
-  expiresAt.setSeconds(expiresAt.getSeconds() + secondsUntil);
-  tokenExpiresAt.value = expiresAt;
+  const tokenRefreshAt = new Date();
+  tokenRefreshAt.setSeconds(tokenRefreshAt.getSeconds() + secondsUntil);
+  tokenWillRefreshAt.value = tokenRefreshAt;
 
   setTimeout(() => {
     const refreshToken = loadTokenData();
     void fetchNewAccessToken(refreshToken);
-  }, (secondsUntil - 10) * 1000);
+  }, secondsUntil * 1000);
 }
 
 function serverAuth (returnPath : string) {
   console.log('triggered server auth');
-  // const returnRoute = '/';
-  // try {
-  //   const route = useRoute();
-  // } catch (e) {
-  //   console.error(e);
-  //   console.log('using default returnRoute');
-  // }
-
   const authUrl = creds.auth_uri;
-  const formData = `client_id=${creds.client_id}&redirect_uri=http://localhost:8080/auth/callback&response_type=code&scope=${scopes[0]}&access_type=offline&include_granted_scopes=true`;
+  const formData = `client_id=${creds.client_id}&redirect_uri=http://localhost:8080/auth/callback&response_type=code&scope=${scopes[0]}&access_type=offline&prompt=consent&include_granted_scopes=true`;
 
   const fullUrl = authUrl + '?' + formData;
 
-  // returnRoute = route;
-  // route.fullPath
   localStorage.setItem('returnPath', returnPath);
-  // console.log(route.fullPath);
-  console.log(fullUrl);
+  console.log('requesting code by redirecting to: ', fullUrl);
   location.assign(fullUrl);
 }
 
@@ -123,12 +110,7 @@ function saveTokenData (tokenResponse: TokenResponse) {
   if (!tokenResponse.refresh_token) {
     throw Error('no refreshtoken in provided tokenResponse');
   }
-  // tokenData.timeStamp = new Date();
-  // const expiresAt = new Date();
-  // expiresAt.setSeconds(expiresAt.getSeconds() + tokenResponse.expires_in);
   const tokenData: TokenData = {
-    // accessExpiresAt: expiresAt,
-    // accessToken: tokenResponse.access_token,
     refreshToken: tokenResponse.refresh_token,
   };
   localStorage.setItem('tokenData', JSON.stringify(tokenData));
@@ -144,7 +126,7 @@ function loadTokenData () {
     console.log(`loadedData: ${dataString}`);
     return loadedData.refreshToken;
   } else {
-    throw Error('no tokeData in localstorage');
+    throw Error('no tokenData in localstorage');
   }
 }
 
@@ -153,6 +135,7 @@ async function fetchTokens (code: string) {
   const formData = `client_id=${creds.client_id}&client_secret=${creds.client_secret}&code=${code}&grant_type=authorization_code&redirect_uri=http://localhost:8080/auth/callback`;
   const response: AxiosResponse<TokenResponse> = await axios.post('https://oauth2.googleapis.com/token', formData);
   const tokenData = response.data;
+  console.log('fetchTokens response: ', tokenData);
   saveTokenData(tokenData);
   accessToken.value = tokenData.access_token;
 
@@ -161,6 +144,7 @@ async function fetchTokens (code: string) {
   // tokenExpiresAt.value = expiresAt;
   scheduleTokenRefreshIn(tokenData.expires_in);
   console.log(tokenData);
+  return response.data;
 }
 
 async function fetchNewAccessToken (refreshToken: string) {
@@ -170,7 +154,7 @@ async function fetchNewAccessToken (refreshToken: string) {
   const tokenData = response.data;
   console.log(`tokenData received: ${JSON.stringify(tokenData)}`);
   accessToken.value = tokenData.access_token;
-  scheduleTokenRefreshIn(tokenData.expires_in);
+  scheduleTokenRefreshIn(tokenData.expires_in - 10);
 }
 
 async function fetchAllAlbums () {

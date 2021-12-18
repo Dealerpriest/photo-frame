@@ -6,10 +6,11 @@
   </div>
   <transition name="fade">
     <div v-if="showOverlay" id="overlay">
-      <q-btn round icon="exit" @click="screenTouched" />
-      <q-btn label="prev" @click="getPrevImage" />
-      <q-btn label="next" @click="getNextImage" />
-      <pre> currentIdx: {{currentIdx}} </pre>
+      <!-- <q-btn round icon="exit" @click="screenTouched" /> -->
+      <h3 class="footer">{{ currentImage?.description? currentImage?.description: '' }} </h3>
+      <q-btn class="q-ma-md left" flat icon="keyboard_arrow_left" size="xl" round  @click="getPrevImage" />
+      <q-btn class="q-ma-md right" flat icon="keyboard_arrow_right" size="xl" round @click="getNextImage" />
+      <!-- <pre class="vignette-shadow"> currentIdx: {{currentIdx}} </pre>
       <pre> slideshowHistory  length: {{ slideshowHistory.length }} </pre>
       <pre> totalWeight: {{totalWeight}} </pre>
       <q-list>
@@ -18,7 +19,7 @@
           {{ imageName }}
         </q-item>
 
-      </q-list>
+      </q-list> -->
     </div>
   </transition>
 </template>
@@ -159,7 +160,8 @@ export default defineComponent({
       addImageToHistory(pickedImage.id);
       resetImageTimer();
     })();
-    return { currentImageUrl, currentIdx, getPrevImage, getNextImage, slideshowHistory, weightedDictionary, totalWeight };
+    // currentImage.value?.mediaMetaData
+    return { currentImageUrl, currentImage, currentIdx, getPrevImage, getNextImage, slideshowHistory, weightedDictionary, totalWeight };
   },
 });
 
@@ -185,7 +187,39 @@ export default defineComponent({
   right: 0;
   bottom: 0;
   left: 0;
-  background-color: hsla(0, 100%, 100%, 0.5);
+  // background-color: hsla(0, 100%, 100%, 1);
+  color: white;
+  // & * {
+  //   color: white;
+  //   text-shadow: 0 0 10rem black ;
+  // }
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  grid-template-areas:
+    "title title title"
+    "left center right"
+    "footer footer footer";
+  place-items: center;
+}
+
+.left {
+  grid-area: left;
+  justify-self: left;
+}
+.right {
+  grid-area: right;
+  justify-self: right;
+}
+.footer {
+  grid-area: footer;
+}
+
+.vignette-shadow {
+  text-shadow: 0 0 0.5rem black,
+               0 0 1rem black,
+               0 0 1rem black,
+               0 0 1rem black,
 }
 
 .fade-enter-active,

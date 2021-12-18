@@ -2,13 +2,13 @@
   <h3>
     Auth test page!
   </h3>
-  <q-btn color="accent" label="fetch auth codes" @click="fetchAuthCodes" />
+  <q-btn color="accent" label="fetch auth codes (device)" @click="fetchAuthCodes" />
   <p>{{deviceCode}}</p>
   <q-btn color="primary" label="fetch token" @click="fetchToken" />
-  <q-btn label="redirect to login" @click="webAuth" color="secondary" />
-  <q-btn label="redirect to server login" @click="serverAuth" color="accent" />
+  <q-btn label="redirect to login (response type token)" @click="webAuth" color="secondary" />
+  <q-btn label="redirect to server login (response type code)" @click="serverAuth" color="accent" />
 
-  <q-btn label="useGphoto init" @click="initialize" />
+  <!-- <q-btn label="useGphoto init" @click="initialize" /> -->
 </template>
 
 <script lang="ts">
@@ -17,7 +17,7 @@ import axios from 'axios';
 import credentials from '../../credentials.json';
 import scopes from '../../scopes.json';
 import { defineComponent, ref } from 'vue';
-// import { useGPhotos } from 'src/composables/useGPhotos';
+import { useGPhotos } from 'src/composables/useGPhotos';
 
 export default defineComponent({
   name: 'AuthTest',
@@ -28,7 +28,7 @@ export default defineComponent({
   setup () {
     const authCodes = ref<string>('');
     const deviceCode = ref<string>('');
-    // const { initialize } = useGPhotos();
+    const { serverAuth } = useGPhotos();
 
     const creds = credentials.web;
     // getAuthenticatedClient(){
@@ -45,15 +45,15 @@ export default defineComponent({
       // console.log(response);
     }
 
-    function serverAuth () {
-      console.log('triggered server auth');
-      const authUrl = creds.auth_uri;
-      const formData = `client_id=${creds.client_id}&redirect_uri=http://localhost:8080/auth/callback&response_type=code&scope=${scopes[0]}&access_type=offline&include_granted_scopes=true`;
+    // function serverAuth () {
+    //   console.log('triggered server auth');
+    //   const authUrl = creds.auth_uri;
+    //   const formData = `client_id=${creds.client_id}&redirect_uri=http://localhost:8080/auth/callback&response_type=code&scope=${scopes[0]}&access_type=offline&include_granted_scopes=true`;
 
-      const fullUrl = authUrl + '?' + formData;
-      console.log(fullUrl);
-      location.assign(fullUrl);
-    }
+    //   const fullUrl = authUrl + '?' + formData;
+    //   console.log(fullUrl);
+    //   location.assign(fullUrl);
+    // }
 
     async function fetchAuthCodes () {
       // const {clientId: client_id, clientSecret: client_secret } = credentials.installed;
