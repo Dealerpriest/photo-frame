@@ -44,6 +44,10 @@
                 <q-toggle v-model="soundIsOnByDefault" />
               </q-item-section>
             </q-item>
+            <q-separator />
+            <q-item clickable @click="goToSettings">
+              <q-item-section>Mer inställningar</q-item-section>
+            </q-item>
           </q-list>
         </q-menu>
         </q-btn>
@@ -75,6 +79,8 @@ import { ref, onBeforeUnmount } from 'vue';
 import { useGPhotos } from 'src/composables/useGPhotos';
 import type { MediaItem } from 'src/composables/useGPhotos';
 import { useWeightedDictionary } from 'src/composables/useWeightedRandomness';
+import { useRouter } from 'vue-router';
+const router = useRouter();
 const initialized = ref<boolean>(false);
 const millisPerImage = 5000;
 const { getAlbumItems } = useGPhotos();
@@ -270,6 +276,10 @@ function onVideoEnded (ev: Event) {
   if (autoPlaySlideshow.value) {
     getNextMediaItem();
   }
+}
+function goToSettings () {
+  console.log('settings clicked');
+  void router.push({ name: 'settings' });
 }
 
 </script>

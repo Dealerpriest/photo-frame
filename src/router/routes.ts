@@ -19,7 +19,7 @@ const routes: RouteRecordRaw[] = [
     },
     children: [
       // { path: '', component: () => import('pages/AuthTest.vue') },
-      { path: 'album', component: () => import('src/pages/ChooseAlbum.vue') },
+      { name: 'settings', path: 'settings', component: () => import('src/pages/Settings.vue') },
       { path: 'frame', component: () => import('src/pages/SlideShow.vue'), alias: '' },
     ],
   },
