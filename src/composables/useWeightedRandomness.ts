@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, toRaw } from 'vue';
 // import { MediaItem } from './useGPhotos';
 
 interface CountedItem<T> {
@@ -64,31 +64,19 @@ export function useWeightedDictionary<T> () {
     if (!existingItem) {
       throw Error('no such item in candidate space');
     }
-    return existingItem.item;
+    return toRaw(existingItem.item);
   }
 
   function pickItem (key: string): T {
-    // let insertItem: CountedItem<T> = {
-    //   timesPicked: 0,
-    //   item: item,
-    // };
     const existingItem = dictionary.value.get(key);
     if (!existingItem) {
       throw Error('no such item in candidate space');
-      // existingItem.weight++;
-      // existingItem.item = item;
-      // insertItem = existingItem;
-      // dictionary.value.set(key, existingItem);
     }
-    // else {
-    //   // dictionary.value.set(key, item);
-    // }
     existingItem.timesPicked++;
-    // existingItem.item = item;
 
     dictionary.value.set(key, existingItem);
     totalNrOfPicks.value++;
-    return existingItem.item;
+    return toRaw(existingItem.item);
   }
 
   const weightedDictionary = computed<Map<string, WeightedItem<T>>>(() => {

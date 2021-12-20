@@ -18,9 +18,9 @@ const routes: RouteRecordRaw[] = [
       next();
     },
     children: [
-      { path: '', component: () => import('pages/AuthTest.vue') },
+      // { path: '', component: () => import('pages/AuthTest.vue') },
       { path: 'album', component: () => import('src/pages/ChooseAlbum.vue') },
-      { path: 'frame', component: () => import('src/pages/SlideShow.vue') },
+      { path: 'frame', component: () => import('src/pages/SlideShow.vue'), alias: '' },
     ],
   },
 

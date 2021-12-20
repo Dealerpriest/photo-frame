@@ -90,7 +90,8 @@ module.exports = {
     'prefer-promise-reject-errors': 'off',
 
     semi: [1, "always"],
-    indent: [1, 2],
+    // indent: [1, 2],
+    '@typescript-eslint/indent': ['warn', 2],
     // TypeScript
     quotes: ['warn', 'single', { avoidEscape: true }],
     '@typescript-eslint/explicit-function-return-type': 'off',

@@ -32,7 +32,7 @@ export interface MediaItem {
   productUrl: string,
   baseUrl: string,
   mimeType: string,
-  mediaMetaData: {
+  mediaMetadata: {
     width: string;
     height: string;
     creationTime: string;
