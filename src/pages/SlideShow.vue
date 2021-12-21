@@ -4,9 +4,9 @@
   <div v-touch-swipe.mouse.horizontal="handleSwipe" id="main-box" @click="showOverlay">
     <q-spinner size="xl" class="fixed-center" color="white" v-if="!initialized" />
     <template v-else-if="currentMediaItem">
-      <img draggable="false" v-if="'photo' in currentMediaItem.mediaMetadata" id="main-image" :src="currentImageUrl" />
+      <img draggable="false" class="absolute-center" v-if="'photo' in currentMediaItem.mediaMetadata" id="main-image" :src="currentImageUrl" />
       <template v-else >
-        <video draggable="false" :muted="!soundIsOn" @ended="onVideoEnded" ref="videoElement" autoplay id="main-video" :src="currentVideoUrl" :poster="currentImageUrl"/>
+        <video draggable="false" class="absolute-center" :muted="!soundIsOn" @ended="onVideoEnded" ref="videoElement" autoplay id="main-video" :src="currentVideoUrl" :poster="currentImageUrl"/>
       </template>
       <div id="footer-box">
         <div id="description-box" ><h4 class="playful-font description-text">{{ currentMediaItem.description}}</h4></div>
@@ -16,6 +16,8 @@
   </div>
   <div v-if="showDebugBox" id="debug-box">
     <pre>{{ currentMediaItem }}</pre>
+    <pre>{{ totalNrOfPicks }}</pre>
+    <pre>{{weightedDictionary }}</pre>
   </div>
   <transition name="fade">
     <div v-if="isShowingOverlay" id="overlay" @click.self="hideOverlay">
@@ -62,7 +64,9 @@
       <q-btn v-if="currentIdx !== 0" class="q-ma-md left" flat icon="keyboard_arrow_left" size="xl" round  @click="getPrevImage(), postponeHidingOfOverlay()" />
       <q-btn class="q-ma-md right" flat icon="keyboard_arrow_right" size="xl" round @click="getNextMediaItem(), postponeHidingOfOverlay()" />
 
-      <!-- <q-btn label="play/pause slideshow" @click="toggleAutoplaySliedshow" /> -->
+      <!-- <q-btn label="save dictionary to storage" @click="saveToStorage" />
+      <q-btn label="load dict from storage" @click="loadFromStorage" /> -->
+
       <!-- <pre class="vignette-shadow"> currentIdx: {{currentIdx}} </pre>
       <pre> slideshowHistory  length: {{ slideshowHistory.length }} </pre>
       <pre> totalWeight: {{totalWeight}} </pre>
@@ -88,7 +92,7 @@ const router = useRouter();
 const initialized = ref<boolean>(false);
 const millisPerImage = 5000;
 const { getAlbumItems } = useGPhotos();
-const { updateCandidateSpace, getRandomItem, getItem } = useWeightedDictionary<MediaItem>();
+const { weightedDictionary, totalNrOfPicks, updateCandidateSpace, getRandomItem, getItem, saveToStorage, loadFromStorage } = useWeightedDictionary<MediaItem>();
 const currentImageUrl = ref<string>('');
 const currentVideoUrl = ref<string | undefined>('');
 const currentMediaItem = ref<MediaItem>();
@@ -156,8 +160,11 @@ function postponeHidingOfOverlay () {
   }
 }
 
-function addImageToHistory (id: string) {
+function addMediaItemToHistory (id: string) {
   slideshowHistory.value.push(id);
+  const stringifiedHistory = JSON.stringify(slideshowHistory.value);
+  console.log('saving slideshowHistory tp localstorage');
+  localStorage.setItem('slideshowHistory', stringifiedHistory);
 }
 
 function toggleAutoplaySlideshow () {
@@ -240,7 +247,7 @@ function getNextMediaItem () {
   } else {
     const pickedItem = fetchRandomMediaItem();
     assignPickedMediaItem(pickedItem);
-    addImageToHistory(pickedItem.id);
+    addMediaItemToHistory(pickedItem.id);
   }
 }
 
@@ -273,12 +280,25 @@ async function refetchMediaItems () {
 // Initialize
 void (async () => {
   // console.log('initialize in slideshow triggered! --------------');
+  loadFromStorage();
   await refetchMediaItems();
 
+  const slideHistoryString = localStorage.getItem('slideshowHistory');
+  if (slideHistoryString) {
+    console.log('found saved slideshow history');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const recalledHistory = JSON.parse(slideHistoryString) as string[];
+    console.log('parsed slideshowHistory', recalledHistory);
+    slideshowHistory.value = recalledHistory;
+    currentIdx.value = recalledHistory.length;
+  }
+
   updateAlbumsTimerId = window.setInterval(() => void refetchMediaItems(), 3 * 60 * 1000);
+  // getNextMediaItem();
   const pickedItem = fetchRandomMediaItem();
-  addImageToHistory(pickedItem.id);
+  addMediaItemToHistory(pickedItem.id);
   assignPickedMediaItem(pickedItem);
+
   initialized.value = true;
 })();
 

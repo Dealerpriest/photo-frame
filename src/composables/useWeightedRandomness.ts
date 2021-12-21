@@ -1,4 +1,4 @@
-import { ref, computed, toRaw } from 'vue';
+import { ref, unref, computed, toRaw } from 'vue';
 // import { MediaItem } from './useGPhotos';
 
 interface CountedItem<T> {
@@ -12,12 +12,34 @@ interface WeightedItem<T> {
   item: T,
 }
 
-// TODO: Possibly separate pickinghistory with candidate space.
-// That way, the history of items no longer in the candidate space would be preserved.
-
 export function useWeightedDictionary<T> () {
   const dictionary = ref<Map<string, CountedItem<T>>>(new Map<string, CountedItem<T>>());
-  const totalNrOfPicks = ref<number>(0);
+  // const totalNrOfPicks = ref<number>(0);
+
+  function resetWeightedDictionary () {
+    localStorage.removeItem('dictionary');
+    dictionary.value = new Map<string, CountedItem<T>>();
+  }
+
+  function saveToStorage () {
+    const unReactiveDict = unref(dictionary);
+    const dictAsArray = Array.from(unReactiveDict.entries());
+    const stringified = JSON.stringify(dictAsArray);
+    console.log(stringified);
+    localStorage.setItem('dictionary', stringified);
+  }
+  function loadFromStorage () {
+    const stringFromStorage: string | null = localStorage.getItem('dictionary');
+    if (stringFromStorage !== null) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const parsedDict = JSON.parse(stringFromStorage) as Array<[string, CountedItem<T>]>;
+      const constructedMap = new Map(parsedDict);
+      dictionary.value = constructedMap;
+      // setCandidateSpace(constructedMap);
+    } else {
+      console.error('no dictionary saved in storage!');
+    }
+  }
 
   function setCandidateSpace (space: Map<string, T>) {
     dictionary.value.clear();
@@ -32,18 +54,29 @@ export function useWeightedDictionary<T> () {
   }
 
   function updateCandidateSpace (space: Map<string, T>) {
+    const constructedDict: typeof dictionary.value = new Map();
+
+    // Go through all injected items
+    // if an item already was in the current dict, update only the item (not number of picks)
+    // if want previously in dict, create a new item
+    // insert the updated or created item into a new clean dict
+    // assign the new dict to dictionary
+
     space.forEach((item, key) => {
       const existingItem = dictionary.value.get(key);
       if (existingItem) {
         existingItem.item = item;
+        constructedDict.set(key, existingItem);
       } else {
         const newItem: CountedItem<T> = {
           timesPicked: 0,
           item: item,
         };
-        dictionary.value.set(key, newItem);
+        constructedDict.set(key, newItem);
       }
     });
+    console.log('candidate space after update', dictionary.value);
+    dictionary.value = constructedDict;
   }
 
   function addItem (key: string, item: T) {
@@ -75,7 +108,7 @@ export function useWeightedDictionary<T> () {
     existingItem.timesPicked++;
 
     dictionary.value.set(key, existingItem);
-    totalNrOfPicks.value++;
+    // totalNrOfPicks.value++;
     return toRaw(existingItem.item);
   }
 
@@ -116,6 +149,14 @@ export function useWeightedDictionary<T> () {
     return accumulator;
   });
 
+  const totalNrOfPicks = computed(() => {
+    let accumulator = 0;
+    dictionary.value.forEach((countedItem) => {
+      accumulator += countedItem.timesPicked;
+    });
+    return accumulator;
+  });
+
   function getRandomItem () {
     let randNum = Math.random();
     // const values = weightedDictionary.value.entries();
@@ -132,5 +173,6 @@ export function useWeightedDictionary<T> () {
     //   randNum -= item.value.
     // }
   }
-  return { weightedDictionary, getRandomItem, getItem, addItem, setCandidateSpace, updateCandidateSpace, totalWeight };
+
+  return { weightedDictionary, saveToStorage, loadFromStorage, resetWeightedDictionary, getRandomItem, getItem, addItem, setCandidateSpace, updateCandidateSpace, totalWeight, totalNrOfPicks };
 }
