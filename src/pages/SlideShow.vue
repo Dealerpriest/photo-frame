@@ -1,20 +1,17 @@
 <template>
   <!-- <h1>Slide Show</h1> -->
   <!-- <q-btn label="next" @click="getNextImage" /> -->
-  <div id="main-box" @click="showOverlay">
+  <div v-touch-swipe.mouse.horizontal="handleSwipe" id="main-box" @click="showOverlay">
     <q-spinner size="xl" class="fixed-center" color="white" v-if="!initialized" />
     <template v-else-if="currentMediaItem">
-      <img v-if="'photo' in currentMediaItem.mediaMetadata" id="main-image" :src="currentImageUrl" />
+      <img draggable="false" v-if="'photo' in currentMediaItem.mediaMetadata" id="main-image" :src="currentImageUrl" />
       <template v-else >
-        <video loop :muted="!soundIsOnByDefault" @ended="onVideoEnded" ref="videoElement" autoplay id="main-video" :src="currentVideoUrl" />
+        <video draggable="false" :muted="!soundIsOn" @ended="onVideoEnded" ref="videoElement" autoplay id="main-video" :src="currentVideoUrl" :poster="currentImageUrl"/>
       </template>
-      <transition name="fade">
-        <div v-if="!isShowingOverlay" id="footer-box">
+      <div id="footer-box">
         <div id="description-box" ><h4 class="playful-font description-text">{{ currentMediaItem.description}}</h4></div>
         <q-btn :class="{ hiddenButton: !('video' in currentMediaItem.mediaMetadata) }" color="white" id="mute-button" @click.stop="toggleAudio" :icon="soundIsOn? 'volume_up': 'volume_off'" round flat />
       </div>
-      </transition>
-      <!-- <img id="main-image" :src="currentImageUrl" /> -->
     </template>
   </div>
   <div v-if="showDebugBox" id="debug-box">
@@ -25,7 +22,7 @@
       <!-- <q-btn round icon="exit" @click="screenTouched" /> -->
       <div class="top">
         <q-btn class="" flat icon="menu" size="xl" round>
-        <q-menu transition>
+        <q-menu v-model="menuIsOpen">
           <q-list>
             <q-item tag="label" v-ripple>
               <q-item-section>
@@ -60,10 +57,10 @@
         </q-btn>
       </div>
       <div class="footer">
-        <h3 class="playful-font description-text">{{ currentMediaItem?.description? currentMediaItem?.description: '' }} </h3>
+        <!-- <h3 class="playful-font description-text">{{ currentMediaItem?.description? currentMediaItem?.description: '' }} </h3> -->
       </div>
-      <q-btn v-if="currentIdx !== 0" class="q-ma-md left" flat icon="keyboard_arrow_left" size="xl" round  @click="getPrevImage" />
-      <q-btn class="q-ma-md right" flat icon="keyboard_arrow_right" size="xl" round @click="getNextMediaItem" />
+      <q-btn v-if="currentIdx !== 0" class="q-ma-md left" flat icon="keyboard_arrow_left" size="xl" round  @click="getPrevImage(), postponeHidingOfOverlay()" />
+      <q-btn class="q-ma-md right" flat icon="keyboard_arrow_right" size="xl" round @click="getNextMediaItem(), postponeHidingOfOverlay()" />
 
       <!-- <q-btn label="play/pause slideshow" @click="toggleAutoplaySliedshow" /> -->
       <!-- <pre class="vignette-shadow"> currentIdx: {{currentIdx}} </pre>
@@ -100,6 +97,7 @@ const autoPlaySlideshow = ref<boolean>(true);
 const autoHideOverlay = ref<boolean>(true);
 const soundIsOnByDefault = ref<boolean>(false);
 const soundIsOn = ref<boolean>(false);
+const menuIsOpen = ref<boolean>(false);
 const currentIdx = ref<number>(0);
 const showDebugBox = ref<boolean>(false);
 const isShowingOverlay = ref<boolean>(false);
@@ -134,6 +132,7 @@ function showOverlay () {
 
 function hideOverlay () {
   console.log('hiding overlay');
+  window.clearTimeout(hideOverlayTimeoutId);
   isShowingOverlay.value = false;
 }
 
@@ -141,7 +140,20 @@ let hideOverlayTimeoutId: number;
 function hideOverlayIn (millis: number) {
   console.log('hiding overlay in (ms):', millis);
   window.clearTimeout(hideOverlayTimeoutId);
-  hideOverlayTimeoutId = window.setTimeout(() => { isShowingOverlay.value = false; }, millis);
+  hideOverlayTimeoutId = window.setTimeout(() => {
+    if (menuIsOpen.value) {
+      console.log('menu is open, reschedule hiding of overlay');
+      hideOverlayIn(10000);
+      return;
+    }
+    isShowingOverlay.value = false;
+  }, millis);
+}
+
+function postponeHidingOfOverlay () {
+  if (autoHideOverlay.value) {
+    hideOverlayIn(10000);
+  }
 }
 
 function addImageToHistory (id: string) {
@@ -192,6 +204,7 @@ function assignPickedMediaItem (mediaItem: MediaItem) {
   if (mediaItem.mediaMetadata.video) {
     if (mediaItem.mediaMetadata.video.status === 'READY') {
       console.log('this was a video mediaItem');
+      soundIsOn.value = soundIsOnByDefault.value;
       currentVideoUrl.value = `${pickedBaseUrl}=dv`;
       clearNextItemTimer();
     }
@@ -292,8 +305,21 @@ function onVideoEnded (ev: Event) {
   // resetNextItemTimer();
   if (autoPlaySlideshow.value) {
     getNextMediaItem();
+  } else {
+    videoElement.value?.play();
   }
 }
+
+function handleSwipe ({ evt, direction }) {
+  console.log('handleSwipe triggered');
+  console.log(evt);
+  if (direction === 'left') {
+    getNextMediaItem();
+  } else {
+    getPrevImage();
+  }
+}
+
 function goToSettings () {
   console.log('settings clicked');
   void router.push({ name: 'settings' });
@@ -353,6 +379,7 @@ function goToSettings () {
 
 #footer-box {
   // background-color: lightpink;
+  z-index: 20;
   position: absolute;
   bottom: 0;
   padding: 2rem;
