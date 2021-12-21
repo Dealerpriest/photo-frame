@@ -5,8 +5,15 @@
     <q-spinner size="xl" class="fixed-center" color="white" v-if="!initialized" />
     <template v-else-if="currentMediaItem">
       <img v-if="'photo' in currentMediaItem.mediaMetadata" id="main-image" :src="currentImageUrl" />
-      <video loop :muted="!soundIsOnByDefault" @ended="onVideoEnded" ref="videoElement" v-else autoplay id="main-video" :src="currentVideoUrl" />
-      <div v-if="!isShowingOverlay" id="description-box" ><h4 class="playful-font description-text">{{ currentMediaItem.description }}</h4></div>
+      <template v-else >
+        <video loop :muted="!soundIsOnByDefault" @ended="onVideoEnded" ref="videoElement" autoplay id="main-video" :src="currentVideoUrl" />
+      </template>
+      <transition name="fade">
+        <div v-if="!isShowingOverlay" id="footer-box">
+        <div id="description-box" ><h4 class="playful-font description-text">{{ currentMediaItem.description}}</h4></div>
+        <q-btn :class="{ hiddenButton: !('video' in currentMediaItem.mediaMetadata) }" color="white" id="mute-button" @click.stop="toggleAudio" :icon="soundIsOn? 'volume_up': 'volume_off'" round flat />
+      </div>
+      </transition>
       <!-- <img id="main-image" :src="currentImageUrl" /> -->
     </template>
   </div>
@@ -55,7 +62,7 @@
       <div class="footer">
         <h3 class="playful-font description-text">{{ currentMediaItem?.description? currentMediaItem?.description: '' }} </h3>
       </div>
-      <q-btn class="q-ma-md left" flat icon="keyboard_arrow_left" size="xl" round  @click="getPrevImage" />
+      <q-btn v-if="currentIdx !== 0" class="q-ma-md left" flat icon="keyboard_arrow_left" size="xl" round  @click="getPrevImage" />
       <q-btn class="q-ma-md right" flat icon="keyboard_arrow_right" size="xl" round @click="getNextMediaItem" />
 
       <!-- <q-btn label="play/pause slideshow" @click="toggleAutoplaySliedshow" /> -->
@@ -92,11 +99,21 @@ const slideshowHistory = ref<string[]>([]);
 const autoPlaySlideshow = ref<boolean>(true);
 const autoHideOverlay = ref<boolean>(true);
 const soundIsOnByDefault = ref<boolean>(false);
+const soundIsOn = ref<boolean>(false);
 const currentIdx = ref<number>(0);
 const showDebugBox = ref<boolean>(false);
 const isShowingOverlay = ref<boolean>(false);
 const videoElement = ref<HTMLVideoElement>();
 let timeoutId: number;
+
+function toggleAudio () {
+  if (!videoElement.value) {
+    console.error('videoElement is undefined');
+    return;
+  }
+  soundIsOn.value = !soundIsOn.value;
+  videoElement.value.muted = !soundIsOn.value;
+}
 
 function toggleAutoHideOverlay () {
   autoHideOverlay.value = !autoHideOverlay.value;
@@ -298,6 +315,7 @@ function goToSettings () {
 #main-box {
   // width: 100%;
   // height: 100%;
+  position: absolute;
   width: 100vw;
   height: 100vh;
   background: $dark;
@@ -309,7 +327,7 @@ function goToSettings () {
   margin: auto ;
   // text-align: center;
   /* position:absolute; */
-  z-index: -1;
+  // z-index: -1;
 }
 
 #main-video {
@@ -320,17 +338,57 @@ function goToSettings () {
   max-width: 100%;
   // text-align: center;
   /* position:absolute; */
-  z-index: -1;
+  // z-index: -1;
+}
+
+#mute-button {
+  // background-color: lightseagreen;
+  // position: absolute;
+  // right: 1rem;
+  // bottom: 1rem;
+  // margin-right: 1rem;
+  flex: 0 0 auto;
+  align-self: flex-end;
+}
+
+#footer-box {
+  // background-color: lightpink;
+  position: absolute;
+  bottom: 0;
+  padding: 2rem;
+  width: 100vw;
+  // height: 30rem;
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: space-between;
 }
 
 #description-box {
-  position: absolute;
-  right: 1rem;
-  bottom: 1rem;
-  color: white;
+  flex-grow: 1;
+  // background-color: lightskyblue;
+  margin-left: 5rem;
+  // position: absolute;
+  // left: auto;
+  // right: auto;
+  // bottom: 1rem;
   * {
-    margin: 0;
+    // background-color: lightsteelblue;
+    // margin-left: auto;
+    // margin-right: auto;
+    margin: auto;
+    line-height: 3.25rem;
+    // display: inline-block;
+    width: fit-content;
+    // text-align: center;
   }
+}
+
+.description-text {
+  color: white;
+  font-size: 3rem;
+  text-shadow: 1px 1px 2px rgb(0, 0, 0), 0 0 1em rgb(0, 0, 0), 0 0 0.2em rgb(0, 0, 0);
 }
 
 #overlay {
@@ -339,6 +397,7 @@ function goToSettings () {
   right: 0;
   bottom: 0;
   left: 0;
+  z-index: 10;
   // background-color: hsla(0, 100%, 100%, 1);
   color: white;
   // & * {
@@ -379,11 +438,6 @@ function goToSettings () {
   place-self: end center;
 }
 
-.description-text {
-  font-size: 3rem;
-  text-shadow: 1px 1px 2px rgb(0, 0, 0), 0 0 1em rgb(0, 0, 0), 0 0 0.2em rgb(0, 0, 0);
-}
-
 .vignette-shadow {
   text-shadow: 0 0 0.5rem black,
                0 0 1rem black,
@@ -393,12 +447,16 @@ function goToSettings () {
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 3s ease;
+  transition: opacity 2s ease;
 }
 
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.hiddenButton {
+  visibility: hidden;
 }
 
 </style>
