@@ -1,13 +1,13 @@
 <template>
   <!-- <h1>Slide Show</h1> -->
   <!-- <q-btn label="next" @click="getNextImage" /> -->
-  <div v-touch-swipe.mouse.horizontal="handleSwipe" id="main-box" @click="showOverlay">
+  <div id="main-box" @click="onMainBoxClicked">
     <q-spinner size="xl" class="fixed-center" color="white" v-if="!initialized" />
     <template v-else-if="currentMediaItem">
-      <img draggable="false" class="absolute-center" v-if="'photo' in currentMediaItem.mediaMetadata" id="main-image" :src="currentImageUrl" />
-      <template v-else >
-        <video draggable="false" class="absolute-center" :muted="!soundIsOn" @ended="onVideoEnded" ref="videoElement" autoplay id="main-video" :src="currentVideoUrl" :poster="currentImageUrl"/>
-      </template>
+      <div class="row nowrap justify-center items-center content-center full-height">
+        <img draggable="false" class="" v-show="'photo' in currentMediaItem.mediaMetadata" id="main-image" :src="currentImageUrl" ref="imageElement" />
+        <video v-show="'video' in currentMediaItem.mediaMetadata" draggable="false"  :muted="!soundIsOn" @ended="onVideoEnded" ref="videoElement" autoplay id="main-video" :src="currentVideoUrl" :poster="currentImageUrl"/>
+      </div>
       <div id="footer-box">
         <div id="description-box" ><h4 class="playful-font description-text">{{ currentMediaItem.description}}</h4></div>
         <q-btn :class="{ hiddenButton: !('video' in currentMediaItem.mediaMetadata) }" color="white" id="mute-button" @click.stop="toggleAudio" :icon="soundIsOn? 'volume_up': 'volume_off'" round flat />
@@ -82,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from 'vue';
+import { ref, onBeforeUnmount, watch, nextTick } from 'vue';
 
 import { useGPhotos } from 'src/composables/useGPhotos';
 import type { MediaItem } from 'src/composables/useGPhotos';
@@ -106,7 +106,39 @@ const currentIdx = ref<number>(0);
 const showDebugBox = ref<boolean>(false);
 const isShowingOverlay = ref<boolean>(false);
 const videoElement = ref<HTMLVideoElement>();
+const imageElement = ref<HTMLImageElement>();
 let timeoutId: number;
+
+// watch(imageElement, (newElement, oldElement) => {
+//   console.log('imageElement changed!', newElement);
+//   if (newElement) {
+//     newElement.onload = (e) => console.log('img loaded: ', e);
+//   }
+// });
+
+function saveSlideshowSettings () {
+  console.log('saving slideshowSettings');
+  const settings = {
+    autoHideOverlay: autoHideOverlay.value,
+    autoPlaySlideshow: autoPlaySlideshow.value,
+    soundIsOnByDefault: soundIsOnByDefault.value,
+  };
+  const stringifiedSetting = JSON.stringify(settings);
+  localStorage.setItem('slideshowSettings', stringifiedSetting);
+}
+
+function loadSlideshowSettings () {
+  const stringifiedSettings = localStorage.getItem('slideshowSettings');
+  if (stringifiedSettings) {
+    const parsedSettings = JSON.parse(stringifiedSettings) as {autoHideOverlay: boolean, autoPlaySlideshow: boolean, soundIsOnByDefault: boolean};
+    autoHideOverlay.value = parsedSettings.autoHideOverlay;
+    autoPlaySlideshow.value = parsedSettings.autoPlaySlideshow;
+    soundIsOnByDefault.value = parsedSettings.soundIsOnByDefault;
+    console.log('slideShowSettings loaded');
+  } else {
+    console.warn('no slideshow settings found in localstorage');
+  }
+}
 
 function toggleAudio () {
   if (!videoElement.value) {
@@ -163,7 +195,7 @@ function postponeHidingOfOverlay () {
 function addMediaItemToHistory (id: string) {
   slideshowHistory.value.push(id);
   const stringifiedHistory = JSON.stringify(slideshowHistory.value);
-  console.log('saving slideshowHistory tp localstorage');
+  // console.log('saving slideshowHistory to localstorage');
   localStorage.setItem('slideshowHistory', stringifiedHistory);
 }
 
@@ -180,7 +212,7 @@ function resetNextItemTimer () {
   if (timeoutId) {
     clearTimeout(timeoutId);
   }
-  console.log('resetting media item timer');
+  // console.log('resetting media item timer');
   timeoutId = window.setTimeout(getNextMediaItem, millisPerImage);
 }
 
@@ -189,13 +221,13 @@ function clearNextItemTimer () {
     console.error('no timeOutId found');
     return;
   }
-  console.log('clearing mediaItem timer');
+  // console.log('clearing mediaItem timer');
   clearTimeout(timeoutId);
 }
 
 function assignPickedMediaItem (mediaItem: MediaItem) {
-  console.log('new mediaItem picked');
-  console.log(mediaItem);
+  // console.log('new mediaItem picked');
+  // console.log(mediaItem);
   // console.log('isRef:', isRef(mediaItem));
   // console.log('isProxy:', isProxy(mediaItem));
   // console.log('isReactive', isReactive(mediaItem));
@@ -208,7 +240,26 @@ function assignPickedMediaItem (mediaItem: MediaItem) {
   const width = document.documentElement.clientWidth;
   const height = document.documentElement.clientHeight;
   currentImageUrl.value = `${pickedBaseUrl}=w${width}-h${height}`;
+
+  // Handle sliding stuff
+  // if (videoElement.value) {
+  //   // console.log('clearing videoElement mouseMove');
+  //   videoElement.value.onmousemove = null;
+  // }
+  // if (imageElement.value) {
+  //   // console.log('clearing imageElement mouseMove');
+  //   imageElement.value.onmousemove = null;
+  // }
+
   if (mediaItem.mediaMetadata.video) {
+    // void nextTick(() => {
+    // console.log('videoElement: ', videoElement.value);
+    if (videoElement.value) {
+      // console.log('attaching mousemove event');
+      // videoElement.value.onmousedown = onMouseDown;
+      // videoElement.value.style.removeProperty('transform');
+    }
+    // });
     if (mediaItem.mediaMetadata.video.status === 'READY') {
       console.log('this was a video mediaItem');
       soundIsOn.value = soundIsOnByDefault.value;
@@ -216,6 +267,14 @@ function assignPickedMediaItem (mediaItem: MediaItem) {
       clearNextItemTimer();
     }
   } else {
+    // void nextTick(() => {
+    // console.log('imageElement: ', imageElement.value);
+    if (imageElement.value) {
+      // console.log('attaching mousemove event');
+      // imageElement.value.onmousedown = onMouseDown;
+      // imageElement.value.style.removeProperty('transform');
+    }
+    // });
     if (autoPlaySlideshow.value) {
       resetNextItemTimer();
     }
@@ -238,7 +297,7 @@ function getPrevImage () {
 }
 
 function getNextMediaItem () {
-  console.log('getting next image');
+  // console.log('getting next image');
 
   currentIdx.value++;
   if (currentIdx.value < slideshowHistory.value.length) {
@@ -282,16 +341,47 @@ void (async () => {
   // console.log('initialize in slideshow triggered! --------------');
   loadFromStorage();
   await refetchMediaItems();
+  initialized.value = true;
 
   const slideHistoryString = localStorage.getItem('slideshowHistory');
   if (slideHistoryString) {
     console.log('found saved slideshow history');
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const recalledHistory = JSON.parse(slideHistoryString) as string[];
-    console.log('parsed slideshowHistory', recalledHistory);
+    // console.log('parsed slideshowHistory', recalledHistory);
     slideshowHistory.value = recalledHistory;
     currentIdx.value = recalledHistory.length;
   }
+
+  // console.log(videoElement.value);
+  void nextTick(() => {
+    // console.log('nextTick from initialize called');
+    // console.log('imageElement: ', imageElement.value);
+    // console.log('videoElement: ', videoElement.value);
+
+    if (videoElement.value) {
+      videoElement.value.onloadstart = () => {
+        console.log('videoElement loading');
+        if (videoElement.value) {
+          videoElement.value.onmousedown = onMouseDown;
+          videoElement.value.onmousemove = null;
+          videoElement.value.style.removeProperty('transform');
+        }
+      };
+    }
+    if (imageElement.value) {
+      imageElement.value.onload = () => {
+        console.log('imageElement loaded');
+        if (imageElement.value) {
+          imageElement.value.onmousedown = onMouseDown;
+          imageElement.value.onmousemove = null;
+          imageElement.value.style.removeProperty('transform');
+        }
+      };
+    }
+  });
+
+  loadSlideshowSettings();
 
   updateAlbumsTimerId = window.setInterval(() => void refetchMediaItems(), 3 * 60 * 1000);
   // getNextMediaItem();
@@ -299,7 +389,9 @@ void (async () => {
   addMediaItemToHistory(pickedItem.id);
   assignPickedMediaItem(pickedItem);
 
-  initialized.value = true;
+  watch([autoHideOverlay, autoPlaySlideshow, soundIsOnByDefault], () => {
+    saveSlideshowSettings();
+  });
 })();
 
 let updateAlbumsTimerId: number;
@@ -330,15 +422,54 @@ function onVideoEnded (ev: Event) {
   }
 }
 
-function handleSwipe ({ evt, direction }) {
-  console.log('handleSwipe triggered');
-  console.log(evt);
-  if (direction === 'left') {
-    getNextMediaItem();
-  } else {
-    getPrevImage();
+function onMainBoxClicked () {
+  if (!isDragging) {
+    showOverlay();
   }
 }
+
+function onMouseDown (e: MouseEvent) {
+  const listeningElement = e.currentTarget as HTMLElement;
+  xOffset = 0;
+  listeningElement.onmousemove = mouseMoved;
+}
+
+let xOffset = 0;
+const distanceForSwipe = 150;
+let isDragging = false;
+function mouseMoved (e: MouseEvent) {
+  // console.log(e);
+  const listeningElement = e.currentTarget as HTMLElement;
+  // console.log(listeningElement.style);
+  isDragging = e.buttons === 1;
+  if (isDragging) {
+    if (Math.abs(xOffset) > distanceForSwipe) {
+      xOffset < 0 ? getNextMediaItem() : getPrevImage();
+      // listeningElement.removeEventListener('mousemove', mouseMoved);
+      listeningElement.onmousemove = null;
+      // xOffset = 0;
+      // listeningElement.style.removeProperty('transform');
+    } else {
+      xOffset += e.movementX;
+      console.log(xOffset);
+      listeningElement.style.transform = `translate3d(${xOffset}px, 0, 0)`;
+    }
+    // listeningElement.addEventListener('mouseup', () => {
+    //   console.log('mouseup triggers');
+    //   // xOffset = 0;
+    // }, { once: true });
+  }
+}
+
+// function handleSwipe ({ evt, direction }) {
+//   console.log('handleSwipe triggered');
+//   console.log(evt);
+//   if (direction === 'left') {
+//     getNextMediaItem();
+//   } else {
+//     getPrevImage();
+//   }
+// }
 
 function goToSettings () {
   console.log('settings clicked');
@@ -361,7 +492,7 @@ function goToSettings () {
 #main-box {
   // width: 100%;
   // height: 100%;
-  position: absolute;
+  // position: absolute;
   width: 100vw;
   height: 100vh;
   background: $dark;
@@ -370,20 +501,23 @@ function goToSettings () {
 
 #main-image {
   display: block;
-  margin: auto ;
+  // margin: auto ;
   // text-align: center;
   /* position:absolute; */
   // z-index: -1;
 }
 
 #main-video {
-  display: block;
-  margin: auto ;
+  // display: block;
+  // margin: auto 0;
   height: 100%;
   max-width: 100%;
   max-width: 100%;
+
+  // left: auto;
+  // right: auto;
   // text-align: center;
-  /* position:absolute; */
+  // position:absolute;
   // z-index: -1;
 }
 
