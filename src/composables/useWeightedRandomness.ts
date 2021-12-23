@@ -77,6 +77,7 @@ export function useWeightedDictionary<T> () {
     });
     console.log('candidate space after update', dictionary.value);
     dictionary.value = constructedDict;
+    saveToStorage();
   }
 
   function addItem (key: string, item: T) {
