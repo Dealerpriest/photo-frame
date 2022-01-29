@@ -495,7 +495,7 @@ function goToSettings () {
   // position: absolute;
   width: 100vw;
   height: 100vh;
-  background: $dark;
+  background: black;
   margin: 0;
 }
 
