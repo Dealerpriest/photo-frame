@@ -2,7 +2,9 @@
   <!-- <h1>Slide Show</h1> -->
   <!-- <q-btn label="next" @click="getNextImage" /> -->
   <div id="main-box" @click="onMainBoxClicked">
-    <q-spinner size="xl" class="fixed-center" color="white" v-if="!initialized" />
+    <div class="fixed-center" v-if="!initialized" >
+      <q-spinner size="xl" color="white" />
+    </div>
     <template v-else-if="currentMediaItem">
       <div class="row nowrap justify-center items-center content-center full-height">
         <img draggable="false" class="" v-show="'photo' in currentMediaItem.mediaMetadata" id="main-image" :src="currentImageUrl" ref="imageElement" />
@@ -341,7 +343,7 @@ void (async () => {
   // console.log('initialize in slideshow triggered! --------------');
   loadFromStorage();
   await refetchMediaItems();
-  initialized.value = true;
+  // initialized.value = true;
 
   const slideHistoryString = localStorage.getItem('slideshowHistory');
   if (slideHistoryString) {
