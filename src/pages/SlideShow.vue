@@ -343,7 +343,7 @@ void (async () => {
   // console.log('initialize in slideshow triggered! --------------');
   loadFromStorage();
   await refetchMediaItems();
-  // initialized.value = true;
+  initialized.value = true;
 
   const slideHistoryString = localStorage.getItem('slideshowHistory');
   if (slideHistoryString) {
