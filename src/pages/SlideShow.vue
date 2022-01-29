@@ -92,6 +92,7 @@ import { useWeightedDictionary } from 'src/composables/useWeightedRandomness';
 import { useRouter } from 'vue-router';
 const router = useRouter();
 const initialized = ref<boolean>(false);
+const blackMode = ref<boolean>(false);
 const millisPerImage = 5000;
 const { getAlbumItems } = useGPhotos();
 const { weightedDictionary, totalNrOfPicks, updateCandidateSpace, getRandomItem, getItem, loadFromStorage } = useWeightedDictionary<MediaItem>();
@@ -111,12 +112,12 @@ const videoElement = ref<HTMLVideoElement>();
 const imageElement = ref<HTMLImageElement>();
 let timeoutId: number;
 
-// watch(imageElement, (newElement, oldElement) => {
-//   console.log('imageElement changed!', newElement);
-//   if (newElement) {
-//     newElement.onload = (e) => console.log('img loaded: ', e);
-//   }
-// });
+window.addEventListener('keyup', (e) => {
+  if (e.key === 'b') {
+    console.log('b was pressed');
+    blackMode.value = !blackMode.value;
+  }
+});
 
 function saveSlideshowSettings () {
   console.log('saving slideshowSettings');
