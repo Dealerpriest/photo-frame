@@ -5,6 +5,7 @@
     <div class="fixed-center" v-if="!initialized" >
       <q-spinner size="xl" color="white" />
     </div>
+    <template v-else-if="blackMode" />
     <template v-else-if="currentMediaItem">
       <div class="row nowrap justify-center items-center content-center full-height">
         <img draggable="false" class="" v-show="'photo' in currentMediaItem.mediaMetadata" id="main-image" :src="currentImageUrl" ref="imageElement" />
@@ -112,13 +113,6 @@ const videoElement = ref<HTMLVideoElement>();
 const imageElement = ref<HTMLImageElement>();
 let timeoutId: number;
 
-window.addEventListener('keyup', (e) => {
-  if (e.key === 'b') {
-    console.log('b was pressed');
-    blackMode.value = !blackMode.value;
-  }
-});
-
 function saveSlideshowSettings () {
   console.log('saving slideshowSettings');
   const settings = {
@@ -211,12 +205,16 @@ function toggleAutoplaySlideshow () {
   }
 }
 
-function resetNextItemTimer () {
+function resetNextItemTimer (customDurationMillis?: number) {
   if (timeoutId) {
     clearTimeout(timeoutId);
   }
-  // console.log('resetting media item timer');
-  timeoutId = window.setTimeout(getNextMediaItem, millisPerImage);
+  let millis = millisPerImage;
+  if (customDurationMillis) {
+    millis = customDurationMillis;
+  }
+  console.log('resetting media item timer (ms): ', millis);
+  timeoutId = window.setTimeout(getNextMediaItem, millis);
 }
 
 function clearNextItemTimer () {
@@ -267,7 +265,15 @@ function assignPickedMediaItem (mediaItem: MediaItem) {
       console.log('this was a video mediaItem');
       soundIsOn.value = soundIsOnByDefault.value;
       currentVideoUrl.value = `${pickedBaseUrl}=dv`;
-      clearNextItemTimer();
+      // if (videoElement.value) {
+      //   videoElement.value.onload = () => {
+      //   };
+      // }
+      if (autoPlaySlideshow.value) {
+        console.log('setting longer timer for video!!!');
+        resetNextItemTimer(1000 * 60 * 4);
+      }
+      // clearNextItemTimer();
     }
   } else {
     // void nextTick(() => {
@@ -412,6 +418,10 @@ window.addEventListener('keyup', (ev) => {
   if (ev.key === 'd') {
     console.log('debug toggled');
     showDebugBox.value = !showDebugBox.value;
+  }
+  if (ev.key === 'b') {
+    console.log('b was pressed');
+    blackMode.value = !blackMode.value;
   }
 });
 
