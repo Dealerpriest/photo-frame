@@ -1,7 +1,6 @@
 <template>
   <q-page padding>
     <div id="page-box">
-
       <q-card>
         <h5>Picked albums</h5>
         <q-option-group :options="albumOptions" v-model="pickedAlbums" type="checkbox" />
@@ -9,8 +8,31 @@
       </q-card>
       <q-card>
         <h5>Reset stuff</h5>
-            <q-btn class="block q-my-md" color="negative" label="reset show counter" @click="resetWeightedDictionary"/>
-            <q-btn class="block q-my-md" color="negative" label="clear slideshow history" @click="clearSlideshowHistory"/>
+        <q-btn
+          class="block q-my-md"
+          color="negative"
+          label="reset show counter"
+          @click="resetWeightedDictionary"
+        />
+        <q-btn
+          class="block q-my-md"
+          color="negative"
+          label="clear slideshow history"
+          @click="clearSlideshowHistory"
+        />
+      </q-card>
+      <q-card>
+        <h5>Auto Black Screen</h5>
+        <div class="row">
+          <div class="q-mr-md">
+            <div class="text-h6">Turn off (black screen) at</div>
+            <q-time now-btn format24h v-model="hiberStartTime" />
+          </div>
+          <div>
+            <div class="text-h6">Turn on (show slideshow) at</div>
+            <q-time now-btn format24h v-model="hiberStopTime" />
+          </div>
+        </div>
       </q-card>
     </div>
     <q-btn class="q-mt-xl" color="primary" to="/" label="return to slideshow" />
@@ -46,7 +68,9 @@ const { resetWeightedDictionary } = useWeightedDictionary<MediaItem>();
 //   value: Album,
 // }
 
-// const albumOptions = ref<albumOption[]>([]);
+const hiberStartTime = ref<string>('00:00');
+const hiberStopTime = ref<string>('09:00');
+
 const pickedAlbums = ref<Album[]>([]);
 const loading = ref<boolean>(true);
 void (async () => {
@@ -113,7 +137,6 @@ console.log(`albums ${JSON.stringify(albums)}`);
 </script>
 
 <style lang="scss">
-
 #page-box {
   display: flex;
   gap: 2rem;
@@ -131,7 +154,7 @@ console.log(`albums ${JSON.stringify(albums)}`);
     width: fit-content;
     // width: 40vw;
     h5 {
-      margin: 0;
+      margin: 0 0 1rem;
     }
   }
 }
